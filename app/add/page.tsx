@@ -101,10 +101,10 @@ export default function AddReportPage() {
 
   useEffect(() => {
     // التحقق من تسجيل الدخول
-    // const userId = localStorage.getItem("user_id")
-    // if (!userId) {
-    //   router.push("/")
-    // }
+    const userId = localStorage.getItem("user_id")
+    if (!userId) {
+      router.push("/")
+    }
 
     // تعيين التاريخ والوقت الحاليين
     const now = new Date()
