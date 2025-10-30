@@ -244,7 +244,7 @@ export default function SearchPage() {
                   </Button>
                 </div>
               </CardFooter>
-            </Card)
+            </Card>
           ))}
         </div>
       )}
