@@ -14,7 +14,7 @@ const tajawal = Tajawal({
 export const metadata: Metadata = {
   title: "نظام إدارة التقارير",
   description: "تطبيق ويب للهاتف لإدارة التقارير الطبية",
-    generator: 'v0.dev'
+    generator: 'Amjad Alsabry'
 }
 
 export default function RootLayout({

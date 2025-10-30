@@ -77,23 +77,23 @@ export default function SearchPage() {
     router.push("/view")
   }
 
-  const handleDownloadPPTX = async (report: Report) => {
-    try {
-      const userId = localStorage.getItem("user_id")
-      if (!userId) {
-        setError("يجب تسجيل الدخول أولاً")
-        return
-      }
+  // const handleDownloadPPTX = async (report: Report) => {
+  //   try {
+  //     const userId = localStorage.getItem("user_id")
+  //     if (!userId) {
+  //       setError("يجب تسجيل الدخول أولاً")
+  //       return
+  //     }
 
-      const success = await downloadPPTX(report, userId)
-      if (!success) {
-        setError("حدث خطأ أثناء تنزيل ملف PPTX")
-      }
-    } catch (err) {
-      console.error("Error downloading PPTX:", err)
-      setError("حدث خطأ أثناء تنزيل ملف PPTX")
-    }
-  }
+  //     const success = await downloadPPTX(report, userId)
+  //     if (!success) {
+  //       setError("حدث خطأ أثناء تنزيل ملف PPTX")
+  //     }
+  //   } catch (err) {
+  //     console.error("Error downloading PPTX:", err)
+  //     setError("حدث خطأ أثناء تنزيل ملف PPTX")
+  //   }
+  // }
 
   const handleDownloadPDF = async (report: Report) => {
     try {
@@ -200,10 +200,10 @@ export default function SearchPage() {
                     <Eye className="mr-2 h-4 w-4" />
                     عرض
                   </Button>
-                  <Button onClick={() => handleDownloadPPTX(report)} className="bg-purple-500 hover:bg-purple-600" size="sm">
+                  {/* <Button onClick={() => handleDownloadPPTX(report)} className="bg-purple-500 hover:bg-purple-600" size="sm">
                     <Download className="mr-2 h-4 w-4" />
                     PPTX
-                  </Button>
+                  </Button> */}
                   <Button onClick={() => handleDownloadPDF(report)} className="bg-purple-500 hover:bg-purple-600" size="sm">
                     <Download className="mr-2 h-4 w-4" />
                     PDF

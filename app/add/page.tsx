@@ -233,20 +233,20 @@ export default function AddReportPage() {
     setError(null)
   }
 
-  const handleDownloadPPTX = async () => {
-    const userId = localStorage.getItem("user_id")
-    if (!userId) return
+  // const handleDownloadPPTX = async () => {
+  //   const userId = localStorage.getItem("user_id")
+  //   if (!userId) return
 
-    const reportData: ReportData = {
-      ...formData,
-      days_count: parseInt(formData.days_count) || 0,
-    }
+  //   const reportData: ReportData = {
+  //     ...formData,
+  //     days_count: parseInt(formData.days_count) || 0,
+  //   }
 
-    const success = await downloadPPTX(reportData, userId)
-    if (!success) {
-      setError("حدث خطأ أثناء تنزيل ملف PPTX")
-    }
-  }
+  //   const success = await downloadPPTX(reportData, userId)
+  //   if (!success) {
+  //     setError("حدث خطأ أثناء تنزيل ملف PPTX")
+  //   }
+  // }
 
   const handleDownloadPDF = async () => {
     const userId = localStorage.getItem("user_id")
@@ -707,7 +707,7 @@ export default function AddReportPage() {
                 transition={{ delay: 0.2 }}
               >
                 <Button
-                  onClick={handleDownloadPPTX}
+                  // onClick={handleDownloadPPTX}
                   className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-md"
                 >
                   <Download className="ml-2 h-4 w-4" />
