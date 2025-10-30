@@ -8,8 +8,9 @@ import { AlertMessage } from "@/components/ui-custom/alert-message"
 import { PageHeader } from "@/components/ui-custom/page-header"
 import { BackButton } from "@/components/ui-custom/back-button"
 import { SearchIcon, PlusCircle, Edit, Trash2, Download, Eye } from "lucide-react"
-import { downloadPPTX, downloadPDF, type ReportData } from "@/lib/report-generator"
+import { type ReportData } from "@/lib/report-generator"
 import { createClientSupabaseClient } from "@/lib/supabase"
+import { downloadPptxViaApi, downloadPdfViaApi } from "@/lib/pptx-service"
 
 interface Report extends ReportData {
   id: string
@@ -54,46 +55,60 @@ export default function SearchPage() {
   }, [router])
 
   const handleAddSimilar = (report: Report) => {
-    // تخزين بيانات التقرير في التخزين المحلي للاستخدام في صفحة الإضافة
     localStorage.setItem("report_template", JSON.stringify(report))
     router.push("/add")
   }
 
   const handleEdit = (report: Report) => {
-    // تخزين بيانات التقرير في التخزين المحلي للاستخدام في صفحة التعديل
     localStorage.setItem("report_to_edit", JSON.stringify(report))
     router.push("/edit")
   }
 
   const handleDelete = (report: Report) => {
-    // تخزين بيانات التقرير في التخزين المحلي للاستخدام في صفحة الحذف
     localStorage.setItem("report_to_delete", JSON.stringify(report))
     router.push("/delete")
   }
 
   const handleView = (report: Report) => {
-    // تخزين بيانات التقرير في التخزين المحلي للاستخدام في صفحة العرض
     localStorage.setItem("report_to_view", JSON.stringify(report))
     router.push("/view")
   }
 
-  // const handleDownloadPPTX = async (report: Report) => {
-  //   try {
-  //     const userId = localStorage.getItem("user_id")
-  //     if (!userId) {
-  //       setError("يجب تسجيل الدخول أولاً")
-  //       return
-  //     }
+  const handleDownloadPPTX = async (report: Report) => {
+    try {
+      const userId = localStorage.getItem("user_id")
+      if (!userId) {
+        setError("يجب تسجيل الدخول أولاً")
+        return
+      }
 
-  //     const success = await downloadPPTX(report, userId)
-  //     if (!success) {
-  //       setError("حدث خطأ أثناء تنزيل ملف PPTX")
-  //     }
-  //   } catch (err) {
-  //     console.error("Error downloading PPTX:", err)
-  //     setError("حدث خطأ أثناء تنزيل ملف PPTX")
-  //   }
-  // }
+      await downloadPptxViaApi({
+        SERVICE_CODE: (report as any).SERVICE_CODE ?? report.service_code,
+        ID_NUMBER: (report as any).ID_NUMBER ?? report.id_number,
+        NAME_AR: (report as any).NAME_AR ?? report.name_ar,
+        NAME_EN: (report as any).NAME_EN ?? report.name_en,
+        DAYS_COUNT: (report as any).DAYS_COUNT ?? report.days_count,
+        ENTRY_DATE_GREGORIAN: (report as any).ENTRY_DATE_GREGORIAN ?? report.entry_date_gregorian,
+        EXIT_DATE_GREGORIAN: (report as any).EXIT_DATE_GREGORIAN ?? report.exit_date_gregorian,
+        ENTRY_DATE_HIJRI: (report as any).ENTRY_DATE_HIJRI ?? (report as any).entry_date_hijri,
+        EXIT_DATE_HIJRI: (report as any).EXIT_DATE_HIJRI ?? (report as any).exit_date_hijri,
+        REPORT_ISSUE_DATE: (report as any).REPORT_ISSUE_DATE ?? (report as any).report_issue_date,
+        NATIONALITY_AR: (report as any).NATIONALITY_AR ?? (report as any).nationality_ar,
+        NATIONALITY_EN: (report as any).NATIONALITY_EN ?? (report as any).nationality_en,
+        DOCTOR_NAME_AR: (report as any).DOCTOR_NAME_AR ?? (report as any).doctor_name_ar,
+        DOCTOR_NAME_EN: (report as any).DOCTOR_NAME_EN ?? (report as any).doctor_name_en,
+        JOB_TITLE_AR: (report as any).JOB_TITLE_AR ?? (report as any).job_title_ar,
+        JOB_TITLE_EN: (report as any).JOB_TITLE_EN ?? (report as any).job_title_en,
+        HOSPITAL_NAME_AR: (report as any).HOSPITAL_NAME_AR ?? (report as any).hospital_name_ar,
+        HOSPITAL_NAME_EN: (report as any).HOSPITAL_NAME_EN ?? (report as any).hospital_name_en,
+        PRINT_DATE: (report as any).PRINT_DATE ?? (report as any).print_date,
+        PRINT_TIME: (report as any).PRINT_TIME ?? (report as any).print_time,
+      })
+    } catch (err) {
+      console.error("Error downloading PPTX:", err)
+      setError("حدث خطأ أثناء تنزيل ملف PPTX")
+    }
+  }
 
   const handleDownloadPDF = async (report: Report) => {
     try {
@@ -103,17 +118,34 @@ export default function SearchPage() {
         return
       }
 
-      const success = await downloadPDF(report, userId)
-      if (!success) {
-        setError("حدث خطأ أثناء تنزيل ملف PDF")
-      }
+      await downloadPdfViaApi({
+        SERVICE_CODE: (report as any).SERVICE_CODE ?? report.service_code,
+        ID_NUMBER: (report as any).ID_NUMBER ?? report.id_number,
+        NAME_AR: (report as any).NAME_AR ?? report.name_ar,
+        NAME_EN: (report as any).NAME_EN ?? report.name_en,
+        DAYS_COUNT: (report as any).DAYS_COUNT ?? report.days_count,
+        ENTRY_DATE_GREGORIAN: (report as any).ENTRY_DATE_GREGORIAN ?? report.entry_date_gregorian,
+        EXIT_DATE_GREGORIAN: (report as any).EXIT_DATE_GREGORIAN ?? report.exit_date_gregorian,
+        ENTRY_DATE_HIJRI: (report as any).ENTRY_DATE_HIJRI ?? (report as any).entry_date_hijri,
+        EXIT_DATE_HIJRI: (report as any).EXIT_DATE_HIJRI ?? (report as any).exit_date_hijri,
+        REPORT_ISSUE_DATE: (report as any).REPORT_ISSUE_DATE ?? (report as any).report_issue_date,
+        NATIONALITY_AR: (report as any).NATIONALITY_AR ?? (report as any).nationality_ar,
+        NATIONALITY_EN: (report as any).NATIONALITY_EN ?? (report as any).nationality_en,
+        DOCTOR_NAME_AR: (report as any).DOCTOR_NAME_AR ?? (report as any).doctor_name_ar,
+        DOCTOR_NAME_EN: (report as any).DOCTOR_NAME_EN ?? (report as any).doctor_name_en,
+        JOB_TITLE_AR: (report as any).JOB_TITLE_AR ?? (report as any).job_title_ar,
+        JOB_TITLE_EN: (report as any).JOB_TITLE_EN ?? (report as any).job_title_en,
+        HOSPITAL_NAME_AR: (report as any).HOSPITAL_NAME_AR ?? (report as any).hospital_name_ar,
+        HOSPITAL_NAME_EN: (report as any).HOSPITAL_NAME_EN ?? (report as any).hospital_name_en,
+        PRINT_DATE: (report as any).PRINT_DATE ?? (report as any).print_date,
+        PRINT_TIME: (report as any).PRINT_TIME ?? (report as any).print_time,
+      })
     } catch (err) {
       console.error("Error downloading PDF:", err)
       setError("حدث خطأ أثناء تنزيل ملف PDF")
     }
   }
 
-  // تنسيق التاريخ
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
     return date.toLocaleDateString("ar-SA")
@@ -200,17 +232,19 @@ export default function SearchPage() {
                     <Eye className="mr-2 h-4 w-4" />
                     عرض
                   </Button>
-                  {/* <Button onClick={() => handleDownloadPPTX(report)} className="bg-purple-500 hover:bg-purple-600" size="sm">
+                  <Button onClick={() => handleDownloadPPTX(report)} className="bg-purple-500 hover:bg-purple-600" size="sm">
                     <Download className="mr-2 h-4 w-4" />
                     PPTX
-                  </Button> */}
+                  </Button>
+                </div>
+                <div className="grid grid-cols-1 gap-2 w-full">
                   <Button onClick={() => handleDownloadPDF(report)} className="bg-purple-500 hover:bg-purple-600" size="sm">
                     <Download className="mr-2 h-4 w-4" />
                     PDF
                   </Button>
                 </div>
               </CardFooter>
-            </Card>
+            </Card)
           ))}
         </div>
       )}

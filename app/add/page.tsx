@@ -36,7 +36,7 @@ import { motion } from "framer-motion"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
 import { Progress } from "@/components/ui/progress"
-import { downloadPPTX, downloadPDF, type ReportData } from "@/lib/report-generator"
+import { downloadPptxViaApi, downloadPdfViaApi } from "@/lib/pptx-service"
 
 interface FormData {
   service_code: string
@@ -60,6 +60,55 @@ interface FormData {
   print_date: string
   print_time: string
 }
+
+const FormField = ({
+  label,
+  name,
+  value,
+  onChange,
+  placeholder,
+  type = "text",
+  required = false,
+  readOnly = false,
+  icon: Icon,
+  hint,
+}: {
+  label: string
+  name: string
+  value: string
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
+  placeholder?: string
+  type?: string
+  required?: boolean
+  readOnly?: boolean
+  icon?: React.ElementType
+  hint?: string
+}) => (
+  <motion.div className="space-y-2" variants={{
+    hidden: { y: 20, opacity: 0 },
+    visible: { y: 0, opacity: 1, transition: { type: "spring", stiffness: 100 } },
+  }}>
+    <Label htmlFor={name} className="text-indigo-900 flex items-center gap-1.5">
+      {Icon && <Icon className="h-4 w-4 text-indigo-600" />}
+      {label}
+      {required && <span className="text-red-500">*</span>}
+    </Label>
+    <div className="relative">
+      <Input
+        id={name}
+        name={name}
+        type={type}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        required={required}
+        readOnly={readOnly}
+        className={`border-indigo-200 focus:border-indigo-400 ${readOnly ? "bg-gray-50" : ""}`}
+      />
+    </div>
+    {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+  </motion.div>
+)
 
 export default function AddReportPage() {
   const router = useRouter()
@@ -233,32 +282,65 @@ export default function AddReportPage() {
     setError(null)
   }
 
-  // const handleDownloadPPTX = async () => {
-  //   const userId = localStorage.getItem("user_id")
-  //   if (!userId) return
+  const handleDownloadPPTX = async () => {
+    const userId = localStorage.getItem("user_id")
+    if (!userId) return
 
-  //   const reportData: ReportData = {
-  //     ...formData,
-  //     days_count: parseInt(formData.days_count) || 0,
-  //   }
-
-  //   const success = await downloadPPTX(reportData, userId)
-  //   if (!success) {
-  //     setError("حدث خطأ أثناء تنزيل ملف PPTX")
-  //   }
-  // }
+    try {
+      await downloadPptxViaApi({
+        SERVICE_CODE: formData.service_code,
+        ID_NUMBER: formData.id_number,
+        NAME_AR: formData.name_ar,
+        NAME_EN: formData.name_en,
+        DAYS_COUNT: parseInt(formData.days_count) || 0,
+        ENTRY_DATE_GREGORIAN: formData.entry_date_gregorian,
+        EXIT_DATE_GREGORIAN: formData.exit_date_gregorian,
+        ENTRY_DATE_HIJRI: formData.entry_date_hijri,
+        EXIT_DATE_HIJRI: formData.exit_date_hijri,
+        REPORT_ISSUE_DATE: formData.report_issue_date,
+        NATIONALITY_AR: formData.nationality_ar,
+        NATIONALITY_EN: formData.nationality_en,
+        DOCTOR_NAME_AR: formData.doctor_name_ar,
+        DOCTOR_NAME_EN: formData.doctor_name_en,
+        JOB_TITLE_AR: formData.job_title_ar,
+        JOB_TITLE_EN: formData.job_title_en,
+        HOSPITAL_NAME_AR: formData.hospital_name_ar,
+        HOSPITAL_NAME_EN: formData.hospital_name_en,
+        PRINT_DATE: formData.print_date,
+        PRINT_TIME: formData.print_time,
+      })
+    } catch (e) {
+      setError("حدث خطأ أثناء تنزيل ملف PPTX")
+    }
+  }
 
   const handleDownloadPDF = async () => {
     const userId = localStorage.getItem("user_id")
     if (!userId) return
-
-    const reportData: ReportData = {
-      ...formData,
-      days_count: parseInt(formData.days_count) || 0,
-    }
-
-    const success = await downloadPDF(reportData, userId)
-    if (!success) {
+    try {
+      await downloadPdfViaApi({
+        SERVICE_CODE: formData.service_code,
+        ID_NUMBER: formData.id_number,
+        NAME_AR: formData.name_ar,
+        NAME_EN: formData.name_en,
+        DAYS_COUNT: parseInt(formData.days_count) || 0,
+        ENTRY_DATE_GREGORIAN: formData.entry_date_gregorian,
+        EXIT_DATE_GREGORIAN: formData.exit_date_gregorian,
+        ENTRY_DATE_HIJRI: formData.entry_date_hijri,
+        EXIT_DATE_HIJRI: formData.exit_date_hijri,
+        REPORT_ISSUE_DATE: formData.report_issue_date,
+        NATIONALITY_AR: formData.nationality_ar,
+        NATIONALITY_EN: formData.nationality_en,
+        DOCTOR_NAME_AR: formData.doctor_name_ar,
+        DOCTOR_NAME_EN: formData.doctor_name_en,
+        JOB_TITLE_AR: formData.job_title_ar,
+        JOB_TITLE_EN: formData.job_title_en,
+        HOSPITAL_NAME_AR: formData.hospital_name_ar,
+        HOSPITAL_NAME_EN: formData.hospital_name_en,
+        PRINT_DATE: formData.print_date,
+        PRINT_TIME: formData.print_time,
+      })
+    } catch (e) {
       setError("حدث خطأ أثناء تنزيل ملف PDF")
     }
   }
@@ -311,51 +393,7 @@ export default function AddReportPage() {
     },
   }
 
-  const FormField = ({
-    label,
-    name,
-    value,
-    onChange,
-    placeholder,
-    type = "text",
-    required = false,
-    readOnly = false,
-    icon: Icon,
-    hint,
-  }: {
-    label: string
-    name: string
-    value: string
-    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
-    placeholder?: string
-    type?: string
-    required?: boolean
-    readOnly?: boolean
-    icon?: React.ElementType
-    hint?: string
-  }) => (
-    <motion.div className="space-y-2" variants={itemVariants}>
-      <Label htmlFor={name} className="text-indigo-900 flex items-center gap-1.5">
-        {Icon && <Icon className="h-4 w-4 text-indigo-600" />}
-        {label}
-        {required && <span className="text-red-500">*</span>}
-      </Label>
-      <div className="relative">
-        <Input
-          id={name}
-          name={name}
-          type={type}
-          value={value}
-          onChange={onChange}
-          placeholder={placeholder}
-          required={required}
-          readOnly={readOnly}
-          className={`border-indigo-200 focus:border-indigo-400 ${readOnly ? "bg-gray-50" : ""}`}
-        />
-      </div>
-      {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
-    </motion.div>
-  )
+  
 
   return (
     <div className="container max-w-md mx-auto p-4 pb-20">
@@ -707,7 +745,7 @@ export default function AddReportPage() {
                 transition={{ delay: 0.2 }}
               >
                 <Button
-                  // onClick={handleDownloadPPTX}
+                  onClick={handleDownloadPPTX}
                   className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-md"
                 >
                   <Download className="ml-2 h-4 w-4" />

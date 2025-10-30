@@ -13,6 +13,15 @@ import { PageHeader } from "@/components/ui-custom/page-header"
 import { Shield, UserPlus, Users, Check, X, Smartphone } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
+interface UserCountSummary {
+  user_id: string
+  username: string
+  total_reports: number
+  active_reports: number
+  deleted_reports: number
+  last_report_created_at: string | null
+}
+
 interface User {
   id: string
   username: string
@@ -31,6 +40,10 @@ interface Device {
 export default function AdminPage() {
   const [users, setUsers] = useState<User[]>([])
   const [devices, setDevices] = useState<Device[]>([])
+  const [userCounts, setUserCounts] = useState<UserCountSummary[]>([])
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
+  const [selectedUserReports, setSelectedUserReports] = useState<any[]>([])
+  const [loadingUserReports, setLoadingUserReports] = useState(false)
   const [newUser, setNewUser] = useState({
     username: "",
     password: "",
@@ -44,6 +57,7 @@ export default function AdminPage() {
   useEffect(() => {
     fetchUsers()
     fetchDevices()
+    fetchUserCounts()
   }, [])
 
   const fetchUsers = async () => {
@@ -92,6 +106,34 @@ export default function AdminPage() {
       setDevices(formattedDevices)
     } catch (err: any) {
       console.error(err)
+    }
+  }
+
+  const fetchUserCounts = async () => {
+    try {
+      const { data, error } = await supabase.from("user_report_counts").select("*").order("username", { ascending: true })
+      if (error) throw error
+      setUserCounts((data as UserCountSummary[]) || [])
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  const fetchReportsForUser = async (userId: string) => {
+    setLoadingUserReports(true)
+    try {
+      const { data, error } = await supabase
+        .from("reports")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+      if (error) throw error
+      setSelectedUserReports(data || [])
+    } catch (err) {
+      console.error(err)
+      setSelectedUserReports([])
+    } finally {
+      setLoadingUserReports(false)
     }
   }
 
@@ -200,6 +242,45 @@ export default function AdminPage() {
           <TabsTrigger value="devices">الأجهزة</TabsTrigger>
         </TabsList>
         <TabsContent value="users" className="space-y-4">
+          {/* Summary list with per-user counts */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center">
+                <Users className="mr-2 h-5 w-5" />
+                إحصائيات المستخدمين
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {userCounts.length === 0 ? (
+                <p className="text-center text-muted-foreground py-4">لا توجد بيانات تقارير</p>
+              ) : (
+                <div className="space-y-2">
+                  {userCounts.map((uc) => (
+                    <div
+                      key={uc.user_id}
+                      className={`p-3 border rounded-md flex items-center justify-between cursor-pointer ${
+                        selectedUserId === uc.user_id ? "bg-indigo-50 border-indigo-200" : ""
+                      }`}
+                      onClick={() => {
+                        setSelectedUserId(uc.user_id)
+                        fetchReportsForUser(uc.user_id)
+                      }}
+                    >
+                      <div>
+                        <p className="font-medium">{uc.username}</p>
+                        <p className="text-xs text-muted-foreground">
+                          إجمالي: {uc.total_reports} • نشط: {uc.active_reports} • محذوف: {uc.deleted_reports}
+                        </p>
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        آخر إضافة: {uc.last_report_created_at ? new Date(uc.last_report_created_at).toLocaleString("ar-SA") : "—"}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
           <Card>
             <CardHeader>
               <CardTitle className="text-lg flex items-center">
@@ -263,11 +344,39 @@ export default function AdminPage() {
               ) : (
                 <div className="space-y-4">
                   {users.map((user) => (
-                    <div key={user.id} className="p-4 border rounded-md flex justify-between items-center">
-                      <div>
-                        <p className="font-medium">{user.username}</p>
-                        <p className="text-xs text-muted-foreground">تاريخ الإنشاء: {formatDate(user.created_at)}</p>
+                    <div key={user.id} className="p-4 border rounded-md">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <p className="font-medium">{user.username}</p>
+                          <p className="text-xs text-muted-foreground">تاريخ الإنشاء: {formatDate(user.created_at)}</p>
+                        </div>
+                        <Button size="sm" variant="outline" onClick={() => { setSelectedUserId(user.id); fetchReportsForUser(user.id) }}>
+                          عرض تقارير المستخدم
+                        </Button>
                       </div>
+                      {selectedUserId === user.id && (
+                        <div className="mt-3 border-t pt-3">
+                          {loadingUserReports ? (
+                            <p className="text-sm text-muted-foreground">جاري التحميل...</p>
+                          ) : selectedUserReports.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">لا توجد تقارير لهذا المستخدم</p>
+                          ) : (
+                            <div className="space-y-2">
+                              {selectedUserReports.map((r) => (
+                                <div key={r.id} className="p-3 rounded-md bg-gray-50 border">
+                                  <div className="flex justify-between text-sm">
+                                    <span>رمز الخدمة: {r.service_code}</span>
+                                    <span>رقم الهوية: {r.id_number}</span>
+                                  </div>
+                                  <div className="text-xs text-muted-foreground mt-1">
+                                    تمت الإضافة: {new Date(r.created_at).toLocaleString("ar-SA")}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

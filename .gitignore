@@ -7,6 +7,10 @@
 /.next/
 /out/
 
+# backend
+backend/venv/
+backend/__pycache__/
+
 # production
 /build
 
