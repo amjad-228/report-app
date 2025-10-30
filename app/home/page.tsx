@@ -51,23 +51,23 @@ export default function HomePage() {
   const [showSearch, setShowSearch] = useState(false)
   const supabase = createClientSupabaseClient()
 
-  useEffect(() => {
-    // التحقق من تسجيل الدخول
-    const userId = localStorage.getItem("user_id")
-    const storedUsername = localStorage.getItem("username")
+  // useEffect(() => {
+  //   // التحقق من تسجيل الدخول
+  //   const userId = localStorage.getItem("user_id")
+  //   const storedUsername = localStorage.getItem("username")
 
-    if (!userId) {
-      router.push("/")
-      return
-    }
+  //   if (!userId) {
+  //     router.push("/")
+  //     return
+  //   }
 
-    if (storedUsername) {
-      setUsername(storedUsername)
-    }
+  //   if (storedUsername) {
+  //     setUsername(storedUsername)
+  //   }
 
-    // جلب إحصائيات التقارير
-    fetchReportStats(userId)
-  }, [router])
+  //   // جلب إحصائيات التقارير
+  //   fetchReportStats(userId)
+  // }, [router])
 
   const fetchReportStats = async (userId: string) => {
     setIsLoading(true)
