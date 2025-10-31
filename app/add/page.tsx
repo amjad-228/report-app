@@ -88,7 +88,7 @@ const FormField = ({
     hidden: { y: 20, opacity: 0 },
     visible: { y: 0, opacity: 1, transition: { type: "spring", stiffness: 100 } },
   }}>
-    <Label htmlFor={name} className="text-indigo-900 flex items-center gap-1.5 justify-end flex-row-reverse">
+    <Label htmlFor={name} className="text-indigo-900 flex items-center gap-1.5 justify-end flex-row-reverse w-full">
       {Icon && <Icon className="h-4 w-4 text-indigo-600" />}
       {label}
       {required && <span className="text-red-500">*</span>}
@@ -422,11 +422,12 @@ export default function AddReportPage() {
                 <span className="text-gray-500">{tabs.length}</span>
               </div>
             </CardTitle>
-            <div className="mt-2">
+            <div className="mt-2" dir="rtl">
               <Progress
                 value={getProgressPercentage()}
+                rtl
                 className="h-2 bg-gray-100"
-                indicatorClassName="bg-gradient-to-r from-blue-500 to-blue-600"
+                indicatorClassName="bg-gradient-to-l from-blue-500 to-blue-600"
               />
             </div>
           </CardHeader>
@@ -439,12 +440,12 @@ export default function AddReportPage() {
 
               {/* تحديث مكون Tabs ليستخدم activeTab */}
               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-3 mb-4">
+                <TabsList className="grid w-full grid-cols-3 mb-4" dir="rtl">
                   <TabsTrigger
                     value="basic"
                     className="data-[state=active]:bg-blue-100 data-[state=active]:text-blue-700"
                   >
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 justify-center">
                       {activeTab === "basic" && <Check className="h-3 w-3" />}
                       <span>البيانات الأساسية</span>
                     </div>
@@ -453,7 +454,7 @@ export default function AddReportPage() {
                     value="dates"
                     className="data-[state=active]:bg-blue-100 data-[state=active]:text-blue-700"
                   >
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 justify-center">
                       {activeTab === "dates" && <Check className="h-3 w-3" />}
                       <span>التواريخ</span>
                     </div>
@@ -462,7 +463,7 @@ export default function AddReportPage() {
                     value="additional"
                     className="data-[state=active]:bg-blue-100 data-[state=active]:text-blue-700"
                   >
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 justify-center">
                       {activeTab === "additional" && <Check className="h-3 w-3" />}
                       <span>بيانات إضافية</span>
                     </div>
