@@ -91,24 +91,6 @@ export default function EditReportPage() {
   const [error, setError] = useState<string | null>(null)
   const supabase = createClientSupabaseClient()
 
-  const formatIsoToDMY = (iso: string) => {
-    if (!iso) return ""
-    const [y, m, d] = iso.split("-")
-    if (!y || !m || !d) return iso
-    return `${d}-${m}-${y}`
-  }
-
-  const parseDMYToIso = (dmy: string) => {
-    if (!dmy) return ""
-    const parts = dmy.split("-")
-    if (parts.length !== 3) return dmy
-    const [d, m, y] = parts
-    if (!y || !m || !d) return dmy
-    const mm = m.padStart(2, "0")
-    const dd = d.padStart(2, "0")
-    return `${y}-${mm}-${dd}`
-  }
-
   useEffect(() => {
     // التحقق من تسجيل الدخول
     const userId = localStorage.getItem("user_id")
@@ -175,11 +157,6 @@ export default function EditReportPage() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
-  }
-
-  const handleChangeDMY = (field: keyof typeof formData) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    const iso = parseDMYToIso(e.target.value)
-    setFormData((prev) => ({ ...prev, [field]: iso }))
   }
 
   const handleSearch = async (e: React.FormEvent) => {
@@ -567,9 +544,9 @@ export default function EditReportPage() {
                     <FormField
                       label="تاريخ الدخول (ميلادي)"
                       name="entryDateGregorian"
-                      type="text"
-                      value={formatIsoToDMY(formData.entryDateGregorian)}
-                      onChange={handleChangeDMY("entryDateGregorian")}
+                      type="date"
+                      value={formData.entryDateGregorian}
+                      onChange={handleChange}
                       required
                       icon={Calendar}
                     />
@@ -577,8 +554,8 @@ export default function EditReportPage() {
                     <FormField
                       label="تاريخ الخروج (ميلادي)"
                       name="exitDateGregorian"
-                      type="text"
-                      value={formatIsoToDMY(formData.exitDateGregorian)}
+                      type="date"
+                      value={formData.exitDateGregorian}
                       onChange={handleChange}
                       readOnly
                       icon={Calendar}
@@ -607,9 +584,9 @@ export default function EditReportPage() {
                     <FormField
                       label="تاريخ إصدار التقرير"
                       name="reportIssueDate"
-                      type="text"
-                      value={formatIsoToDMY(formData.reportIssueDate)}
-                      onChange={handleChangeDMY("reportIssueDate")}
+                      type="date"
+                      value={formData.reportIssueDate}
+                      onChange={handleChange}
                       required
                       icon={Calendar}
                     />

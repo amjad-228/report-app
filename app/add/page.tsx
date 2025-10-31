@@ -141,24 +141,6 @@ export default function AddReportPage() {
   const [activeTab, setActiveTab] = useState("basic")
   const supabase = createClientSupabaseClient()
 
-  const formatIsoToDMY = (iso: string) => {
-    if (!iso) return ""
-    const [y, m, d] = iso.split("-")
-    if (!y || !m || !d) return iso
-    return `${d}-${m}-${y}`
-  }
-
-  const parseDMYToIso = (dmy: string) => {
-    if (!dmy) return ""
-    const parts = dmy.split("-")
-    if (parts.length !== 3) return dmy
-    const [d, m, y] = parts
-    if (!y || !m || !d) return dmy
-    const mm = m.padStart(2, "0")
-    const dd = d.padStart(2, "0")
-    return `${y}-${mm}-${dd}`
-  }
-
   const tabs = ["basic", "dates", "additional"]
   const tabLabels = {
     basic: "البيانات الأساسية",
@@ -175,7 +157,7 @@ export default function AddReportPage() {
 
     // تعيين التاريخ والوقت الحاليين
     const now = new Date()
-    const todayIso = now.toISOString().split("T")[0]
+    const today = now.toISOString().split("T")[0]
 
     // تنسيق التاريخ مثل "Tuesday, 22 April 2025"
     const options: Intl.DateTimeFormatOptions = {
@@ -195,8 +177,8 @@ export default function AddReportPage() {
 
     setFormData((prev) => ({
       ...prev,
-      entry_date_gregorian: todayIso,
-      report_issue_date: todayIso,
+      entry_date_gregorian: today,
+      report_issue_date: today,
       print_date: formattedDate,
       print_time: formattedTime,
     }))
@@ -223,11 +205,6 @@ export default function AddReportPage() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
-  }
-
-  const handleChangeDMY = (field: keyof FormData) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    const iso = parseDMYToIso(e.target.value)
-    setFormData((prev) => ({ ...prev, [field]: iso }))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -546,9 +523,9 @@ export default function AddReportPage() {
                   <FormField
                     label="تاريخ الدخول (ميلادي)"
                     name="entry_date_gregorian"
-                    type="text"
-                    value={formatIsoToDMY(formData.entry_date_gregorian)}
-                    onChange={handleChangeDMY("entry_date_gregorian")}
+                    type="date"
+                    value={formData.entry_date_gregorian}
+                    onChange={handleChange}
                     required
                     icon={Calendar}
                   />
@@ -556,8 +533,8 @@ export default function AddReportPage() {
                   <FormField
                     label="تاريخ الخروج (ميلادي)"
                     name="exit_date_gregorian"
-                    type="text"
-                    value={formatIsoToDMY(formData.exit_date_gregorian)}
+                    type="date"
+                    value={formData.exit_date_gregorian}
                     onChange={handleChange}
                     readOnly
                     icon={Calendar}
@@ -587,9 +564,9 @@ export default function AddReportPage() {
                   <FormField
                     label="تاريخ إصدار التقرير"
                     name="report_issue_date"
-                    type="text"
-                    value={formatIsoToDMY(formData.report_issue_date)}
-                    onChange={handleChangeDMY("report_issue_date")}
+                    type="date"
+                    value={formData.report_issue_date}
+                    onChange={handleChange}
                     required
                     icon={Calendar}
                   />
