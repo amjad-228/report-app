@@ -84,11 +84,11 @@ const FormField = ({
   icon?: React.ElementType
   hint?: string
 }) => (
-  <motion.div className="space-y-2" variants={{
+  <motion.div className="space-y-2 text-right" variants={{
     hidden: { y: 20, opacity: 0 },
     visible: { y: 0, opacity: 1, transition: { type: "spring", stiffness: 100 } },
   }}>
-    <Label htmlFor={name} className="text-indigo-900 flex items-center gap-1.5">
+    <Label htmlFor={name} className="text-indigo-900 flex items-center gap-1.5 justify-end flex-row-reverse">
       {Icon && <Icon className="h-4 w-4 text-indigo-600" />}
       {label}
       {required && <span className="text-red-500">*</span>}
@@ -103,10 +103,10 @@ const FormField = ({
         placeholder={placeholder}
         required={required}
         readOnly={readOnly}
-        className={`border-indigo-200 focus:border-indigo-400 ${readOnly ? "bg-gray-50" : ""}`}
+        className={`text-right border-indigo-200 focus:border-indigo-400 ${readOnly ? "bg-gray-50" : ""}`}
       />
     </div>
-    {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+    {hint && <p className="text-xs text-muted-foreground text-right">{hint}</p>}
   </motion.div>
 )
 
@@ -192,7 +192,10 @@ export default function AddReportPage() {
 
       if (!isNaN(days)) {
         const exitDate = new Date(entryDate)
-        exitDate.setDate(exitDate.getDate() + days)
+        // إذا كان عدد الأيام 1 → تاريخ الخروج = تاريخ الدخول
+        // عمومًا: تاريخ الخروج = تاريخ الدخول + (عدد الأيام - 1)
+        const offset = Math.max(0, days - 1)
+        exitDate.setDate(exitDate.getDate() + offset)
 
         setFormData((prev) => ({
           ...prev,
@@ -396,7 +399,7 @@ export default function AddReportPage() {
   
 
   return (
-    <div className="container max-w-md mx-auto p-4 pb-20">
+    <div className="container max-w-md mx-auto p-4 pb-20 text-right" dir="rtl">
       <BackButton />
       <PageHeader
         title={<span className="gradient-heading text-2xl">إضافة تقرير جديد</span>}

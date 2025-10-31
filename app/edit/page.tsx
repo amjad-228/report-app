@@ -119,7 +119,10 @@ export default function EditReportPage() {
 
       if (!isNaN(days)) {
         const exitDate = new Date(entryDate)
-        exitDate.setDate(exitDate.getDate() + days)
+        // إذا كان عدد الأيام 1 → تاريخ الخروج = تاريخ الدخول
+        // عمومًا: تاريخ الخروج = تاريخ الدخول + (عدد الأيام - 1)
+        const offset = Math.max(0, days - 1)
+        exitDate.setDate(exitDate.getDate() + offset)
 
         setFormData((prev) => ({
           ...prev,
