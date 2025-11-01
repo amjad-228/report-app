@@ -32,6 +32,7 @@ import { motion } from "framer-motion"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
 import { addActivity } from "@/lib/activities-service"
+import { toHijri } from "hijri-date-converter"
 
 interface Report {
   id: string
@@ -56,6 +57,23 @@ interface Report {
   print_date: string
   print_time: string
   [key: string]: any
+}
+
+// دالة لتحويل التاريخ الميلادي إلى هجري
+const convertToHijri = (gregorianDate: string): string => {
+  if (!gregorianDate) return ""
+  try {
+    const date = new Date(gregorianDate)
+    const hijriDate = toHijri(date)
+    // تنسيق التاريخ بصيغة DD/MM/YYYY
+    const day = String(hijriDate.day).padStart(2, "0")
+    const month = String(hijriDate.month).padStart(2, "0")
+    const year = hijriDate.year
+    return `${day}/${month}/${year}`
+  } catch (error) {
+    console.error("Error converting to Hijri:", error)
+    return ""
+  }
 }
 
 export default function EditReportPage() {
@@ -131,6 +149,28 @@ export default function EditReportPage() {
       }
     }
   }, [formData.entryDateGregorian, formData.daysCount])
+
+  // حساب التاريخ الهجري للدخول بناءً على التاريخ الميلادي
+  useEffect(() => {
+    if (formData.entryDateGregorian) {
+      const hijriDate = convertToHijri(formData.entryDateGregorian)
+      setFormData((prev) => ({
+        ...prev,
+        entryDateHijri: hijriDate,
+      }))
+    }
+  }, [formData.entryDateGregorian])
+
+  // حساب التاريخ الهجري للخروج بناءً على التاريخ الميلادي
+  useEffect(() => {
+    if (formData.exitDateGregorian) {
+      const hijriDate = convertToHijri(formData.exitDateGregorian)
+      setFormData((prev) => ({
+        ...prev,
+        exitDateHijri: hijriDate,
+      }))
+    }
+  }, [formData.exitDateGregorian])
 
   const populateFormData = (report: Report) => {
     setFormData({
@@ -570,9 +610,10 @@ export default function EditReportPage() {
                       name="entryDateHijri"
                       value={formData.entryDateHijri}
                       onChange={handleChange}
-                      placeholder="أدخل تاريخ الدخول الهجري"
-                      required
+                      placeholder="يتم حسابه تلقائيًا"
+                      readOnly
                       icon={Calendar}
+                      hint="(يتم حسابه تلقائيًا من تاريخ الدخول الميلادي)"
                     />
 
                     <FormField
@@ -580,8 +621,10 @@ export default function EditReportPage() {
                       name="exitDateHijri"
                       value={formData.exitDateHijri}
                       onChange={handleChange}
-                      placeholder="أدخل تاريخ الخروج الهجري"
+                      placeholder="يتم حسابه تلقائيًا"
+                      readOnly
                       icon={Calendar}
+                      hint="(يتم حسابه تلقائيًا من تاريخ الخروج الميلادي)"
                     />
 
                     <FormField

@@ -37,6 +37,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
 import { Progress } from "@/components/ui/progress"
 import { downloadPptxViaApi, downloadPdfViaApi } from "@/lib/pptx-service"
+import { toHijri } from "hijri-date-converter"
 
 interface FormData {
   service_code: string
@@ -59,6 +60,23 @@ interface FormData {
   hospital_name_en: string
   print_date: string
   print_time: string
+}
+
+// دالة لتحويل التاريخ الميلادي إلى هجري
+const convertToHijri = (gregorianDate: string): string => {
+  if (!gregorianDate) return ""
+  try {
+    const date = new Date(gregorianDate)
+    const hijriDate = toHijri(date)
+    // تنسيق التاريخ بصيغة DD/MM/YYYY
+    const day = String(hijriDate.day).padStart(2, "0")
+    const month = String(hijriDate.month).padStart(2, "0")
+    const year = hijriDate.year
+    return `${day}/${month}/${year}`
+  } catch (error) {
+    console.error("Error converting to Hijri:", error)
+    return ""
+  }
 }
 
 const FormField = ({
@@ -205,6 +223,28 @@ export default function AddReportPage() {
     }
   }, [formData.entry_date_gregorian, formData.days_count])
 
+  // حساب التاريخ الهجري للدخول بناءً على التاريخ الميلادي
+  useEffect(() => {
+    if (formData.entry_date_gregorian) {
+      const hijriDate = convertToHijri(formData.entry_date_gregorian)
+      setFormData((prev) => ({
+        ...prev,
+        entry_date_hijri: hijriDate,
+      }))
+    }
+  }, [formData.entry_date_gregorian])
+
+  // حساب التاريخ الهجري للخروج بناءً على التاريخ الميلادي
+  useEffect(() => {
+    if (formData.exit_date_gregorian) {
+      const hijriDate = convertToHijri(formData.exit_date_gregorian)
+      setFormData((prev) => ({
+        ...prev,
+        exit_date_hijri: hijriDate,
+      }))
+    }
+  }, [formData.exit_date_gregorian])
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
@@ -240,7 +280,7 @@ export default function AddReportPage() {
 
       // إضافة نشاط جديد
       if (data && data.length > 0) {
-        const reportId = data[0].id
+        const reportId = String(data[0].id)
         await addActivity(
           userId,
           "add",
@@ -550,9 +590,10 @@ export default function AddReportPage() {
                     name="entry_date_hijri"
                     value={formData.entry_date_hijri}
                     onChange={handleChange}
-                    placeholder="أدخل تاريخ الدخول الهجري"
-                    required
+                    placeholder="يتم حسابه تلقائيًا"
+                    readOnly
                     icon={Calendar}
+                    hint="(يتم حسابه تلقائيًا من تاريخ الدخول الميلادي)"
                   />
 
                   <FormField
@@ -560,9 +601,10 @@ export default function AddReportPage() {
                     name="exit_date_hijri"
                     value={formData.exit_date_hijri}
                     onChange={handleChange}
-                    placeholder="أدخل تاريخ الخروج الهجري"
+                    placeholder="يتم حسابه تلقائيًا"
+                    readOnly
                     icon={Calendar}
-                    hint="(يتم حسابه تلقائيًا في التطبيق الحقيقي)"
+                    hint="(يتم حسابه تلقائيًا من تاريخ الخروج الميلادي)"
                   />
 
                   <FormField

@@ -59,6 +59,7 @@
     "docxtemplater": "^3.61.2",
     "embla-carousel-react": "8.5.1",
     "framer-motion": "latest",
+    "hijri-date-converter": "^1.0.2",
     "input-otp": "1.4.1",
     "jspdf": "^3.0.1",
     "jspdf-autotable": "^5.0.2",

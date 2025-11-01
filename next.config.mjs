@@ -11,6 +11,7 @@ const nextConfig = {
   },
   output: 'export',
   trailingSlash: true,
+  transpilePackages: ['hijri-date-converter'],
 }
 
 export default nextConfig
