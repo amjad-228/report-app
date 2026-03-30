@@ -9,7 +9,7 @@ import { AlertMessage } from "@/components/ui-custom/alert-message"
 import { PageHeader } from "@/components/ui-custom/page-header"
 import { BackButton } from "@/components/ui-custom/back-button"
 import { BarChart3, PlusCircle, Edit, Trash2, Download, ChevronLeft, ChevronRight } from "lucide-react"
-import { downloadPptxViaApi, downloadPdfViaApi } from "@/lib/pptx-service"
+import { usePptxDownloadWithProgress, usePdfDownloadWithProgress } from "@/components/ui-custom/pptx-download-progress"
 
 interface Report {
   id: string
@@ -33,6 +33,8 @@ export default function ReportsPage() {
   const [totalPages, setTotalPages] = useState(1)
   const pageSize = 5
   const supabase = createClientSupabaseClient()
+  const { downloadPptx, pptxProgressDialog } = usePptxDownloadWithProgress()
+  const { downloadPdf, pdfProgressDialog } = usePdfDownloadWithProgress()
 
   useEffect(() => {
     // التحقق من تسجيل الدخول
@@ -109,61 +111,53 @@ export default function ReportsPage() {
   }
 
   const handleDownloadPPTX = async (report: Report) => {
-    try {
-      await downloadPptxViaApi({
-        SERVICE_CODE: report.service_code,
-        ID_NUMBER: report.id_number,
-        NAME_AR: report.name_ar,
-        NAME_EN: report.name_en,
-        DAYS_COUNT: report.days_count,
-        ENTRY_DATE_GREGORIAN: report.entry_date_gregorian,
-        EXIT_DATE_GREGORIAN: report.exit_date_gregorian,
-        ENTRY_DATE_HIJRI: report.entry_date_hijri,
-        EXIT_DATE_HIJRI: report.exit_date_hijri,
-        REPORT_ISSUE_DATE: report.report_issue_date,
-        NATIONALITY_AR: report.nationality_ar,
-        NATIONALITY_EN: report.nationality_en,
-        DOCTOR_NAME_AR: report.doctor_name_ar,
-        DOCTOR_NAME_EN: report.doctor_name_en,
-        JOB_TITLE_AR: report.job_title_ar,
-        JOB_TITLE_EN: report.job_title_en,
-        HOSPITAL_NAME_AR: report.hospital_name_ar,
-        HOSPITAL_NAME_EN: report.hospital_name_en,
-        PRINT_DATE: report.print_date,
-        PRINT_TIME: report.print_time,
-      })
-    } catch (e) {
-      alert("فشل إنشاء PPTX")
-    }
+    await downloadPptx({
+      SERVICE_CODE: report.service_code,
+      ID_NUMBER: report.id_number,
+      NAME_AR: report.name_ar,
+      NAME_EN: report.name_en,
+      DAYS_COUNT: report.days_count,
+      ENTRY_DATE_GREGORIAN: report.entry_date_gregorian,
+      EXIT_DATE_GREGORIAN: report.exit_date_gregorian,
+      ENTRY_DATE_HIJRI: report.entry_date_hijri,
+      EXIT_DATE_HIJRI: report.exit_date_hijri,
+      REPORT_ISSUE_DATE: report.report_issue_date,
+      NATIONALITY_AR: report.nationality_ar,
+      NATIONALITY_EN: report.nationality_en,
+      DOCTOR_NAME_AR: report.doctor_name_ar,
+      DOCTOR_NAME_EN: report.doctor_name_en,
+      JOB_TITLE_AR: report.job_title_ar,
+      JOB_TITLE_EN: report.job_title_en,
+      HOSPITAL_NAME_AR: report.hospital_name_ar,
+      HOSPITAL_NAME_EN: report.hospital_name_en,
+      PRINT_DATE: report.print_date,
+      PRINT_TIME: report.print_time,
+    })
   }
 
   const handleDownloadPDF = async (report: Report) => {
-    try {
-      await downloadPdfViaApi({
-        SERVICE_CODE: report.service_code,
-        ID_NUMBER: report.id_number,
-        NAME_AR: report.name_ar,
-        NAME_EN: report.name_en,
-        DAYS_COUNT: report.days_count,
-        ENTRY_DATE_GREGORIAN: report.entry_date_gregorian,
-        EXIT_DATE_GREGORIAN: report.exit_date_gregorian,
-        ENTRY_DATE_HIJRI: (report as any).entry_date_hijri,
-        EXIT_DATE_HIJRI: (report as any).exit_date_hijri,
-        REPORT_ISSUE_DATE: (report as any).report_issue_date,
-        NATIONALITY_AR: (report as any).nationality_ar,
-        NATIONALITY_EN: (report as any).nationality_en,
-        DOCTOR_NAME_AR: (report as any).doctor_name_ar,
-        DOCTOR_NAME_EN: (report as any).doctor_name_en,
-        JOB_TITLE_AR: (report as any).job_title_ar,
-        JOB_TITLE_EN: (report as any).job_title_en,
-        HOSPITAL_NAME_AR: (report as any).hospital_name_ar,
-        HOSPITAL_NAME_EN: (report as any).hospital_name_en,
-        PRINT_DATE: (report as any).print_date,
-        PRINT_TIME: (report as any).print_time,
-      })
-    } catch (e) {
-      alert("فشل إنشاء PDF")
-    }
+    await downloadPdf({
+      SERVICE_CODE: report.service_code,
+      ID_NUMBER: report.id_number,
+      NAME_AR: report.name_ar,
+      NAME_EN: report.name_en,
+      DAYS_COUNT: report.days_count,
+      ENTRY_DATE_GREGORIAN: report.entry_date_gregorian,
+      EXIT_DATE_GREGORIAN: report.exit_date_gregorian,
+      ENTRY_DATE_HIJRI: (report as any).entry_date_hijri,
+      EXIT_DATE_HIJRI: (report as any).exit_date_hijri,
+      REPORT_ISSUE_DATE: (report as any).report_issue_date,
+      NATIONALITY_AR: (report as any).nationality_ar,
+      NATIONALITY_EN: (report as any).nationality_en,
+      DOCTOR_NAME_AR: (report as any).doctor_name_ar,
+      DOCTOR_NAME_EN: (report as any).doctor_name_en,
+      JOB_TITLE_AR: (report as any).job_title_ar,
+      JOB_TITLE_EN: (report as any).job_title_en,
+      HOSPITAL_NAME_AR: (report as any).hospital_name_ar,
+      HOSPITAL_NAME_EN: (report as any).hospital_name_en,
+      PRINT_DATE: (report as any).print_date,
+      PRINT_TIME: (report as any).print_time,
+    })
   }
 
   // تنسيق التاريخ
@@ -174,6 +168,8 @@ export default function ReportsPage() {
 
   return (
     <div className="container max-w-md mx-auto p-4 pb-20">
+      {pptxProgressDialog}
+      {pdfProgressDialog}
       <BackButton />
       <PageHeader
         title="التقارير"

@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { createClientSupabaseClient } from "@/lib/supabase"
 import { Button } from "@/components/ui/button"
@@ -33,6 +33,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
 import { addActivity } from "@/lib/activities-service"
 import { toHijri } from "hijri-date-converter"
+import { clearArToEnTimers, scheduleArToEnSync } from "@/lib/auto-translate-ar-en"
 
 interface Report {
   id: string
@@ -59,6 +60,37 @@ interface Report {
   [key: string]: any
 }
 
+interface EditFormState {
+  serviceCode: string
+  idNumber: string
+  nameAr: string
+  nameEn: string
+  daysCount: string
+  entryDateGregorian: string
+  exitDateGregorian: string
+  entryDateHijri: string
+  exitDateHijri: string
+  reportIssueDate: string
+  nationalityAr: string
+  nationalityEn: string
+  doctorNameAr: string
+  doctorNameEn: string
+  jobTitleAr: string
+  jobTitleEn: string
+  hospitalNameAr: string
+  hospitalNameEn: string
+  printDate: string
+  printTime: string
+}
+
+const EDIT_AR_EN_PAIRS: { ar: keyof EditFormState; en: keyof EditFormState }[] = [
+  { ar: "nameAr", en: "nameEn" },
+  { ar: "nationalityAr", en: "nationalityEn" },
+  { ar: "doctorNameAr", en: "doctorNameEn" },
+  { ar: "jobTitleAr", en: "jobTitleEn" },
+  { ar: "hospitalNameAr", en: "hospitalNameEn" },
+]
+
 // دالة لتحويل التاريخ الميلادي إلى هجري
 const convertToHijri = (gregorianDate: string): string => {
   if (!gregorianDate) return ""
@@ -82,7 +114,7 @@ export default function EditReportPage() {
   const [serviceCode, setServiceCode] = useState("")
   const [idNumber, setIdNumber] = useState("")
   const [report, setReport] = useState<Report | null>(null)
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<EditFormState>({
     serviceCode: "",
     idNumber: "",
     nameAr: "",
@@ -107,6 +139,7 @@ export default function EditReportPage() {
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const translateTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
   const supabase = createClientSupabaseClient()
 
   useEffect(() => {
@@ -172,6 +205,10 @@ export default function EditReportPage() {
     }
   }, [formData.exitDateGregorian])
 
+  useEffect(() => {
+    return () => clearArToEnTimers(translateTimersRef)
+  }, [])
+
   const populateFormData = (report: Report) => {
     setFormData({
       serviceCode: report.service_code,
@@ -200,6 +237,10 @@ export default function EditReportPage() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
+    const pair = EDIT_AR_EN_PAIRS.find((p) => p.ar === name)
+    if (pair) {
+      scheduleArToEnSync<EditFormState>(setFormData, translateTimersRef, pair.ar, pair.en, value)
+    }
   }
 
   const handleSearch = async (e: React.FormEvent) => {

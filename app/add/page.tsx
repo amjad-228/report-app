@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { createClientSupabaseClient } from "@/lib/supabase"
 import { addActivity } from "@/lib/activities-service"
@@ -36,10 +36,11 @@ import { motion } from "framer-motion"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
 import { Progress } from "@/components/ui/progress"
-import { downloadPptxViaApi, downloadPdfViaApi } from "@/lib/pptx-service"
+import { usePptxDownloadWithProgress, usePdfDownloadWithProgress } from "@/components/ui-custom/pptx-download-progress"
 import { toHijri } from "hijri-date-converter"
+import { clearArToEnTimers, scheduleArToEnSync } from "@/lib/auto-translate-ar-en"
 
-interface FormData {
+interface ReportFormFields {
   service_code: string
   id_number: string
   name_ar: string
@@ -78,6 +79,14 @@ const convertToHijri = (gregorianDate: string): string => {
     return ""
   }
 }
+
+const AR_EN_FIELD_PAIRS: { ar: keyof ReportFormFields; en: keyof ReportFormFields }[] = [
+  { ar: "name_ar", en: "name_en" },
+  { ar: "nationality_ar", en: "nationality_en" },
+  { ar: "doctor_name_ar", en: "doctor_name_en" },
+  { ar: "job_title_ar", en: "job_title_en" },
+  { ar: "hospital_name_ar", en: "hospital_name_en" },
+]
 
 const FormField = ({
   label,
@@ -130,7 +139,7 @@ const FormField = ({
 
 export default function AddReportPage() {
   const router = useRouter()
-  const [formData, setFormData] = useState<FormData>({
+  const [formData, setFormData] = useState<ReportFormFields>({
     service_code: "",
     id_number: "",
     name_ar: "",
@@ -157,6 +166,9 @@ export default function AddReportPage() {
   const [error, setError] = useState<string | null>(null)
   // إضافة متغير حالة للتبويب النشط
   const [activeTab, setActiveTab] = useState("basic")
+  const translateTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
+  const { downloadPptx, pptxProgressDialog } = usePptxDownloadWithProgress()
+  const { downloadPdf, pdfProgressDialog } = usePdfDownloadWithProgress()
   const supabase = createClientSupabaseClient()
 
   const tabs = ["basic", "dates", "additional"]
@@ -245,9 +257,17 @@ export default function AddReportPage() {
     }
   }, [formData.exit_date_gregorian])
 
+  useEffect(() => {
+    return () => clearArToEnTimers(translateTimersRef)
+  }, [])
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
+    const pair = AR_EN_FIELD_PAIRS.find((p) => p.ar === name)
+    if (pair) {
+      scheduleArToEnSync<ReportFormFields>(setFormData, translateTimersRef, pair.ar, pair.en, value)
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -329,63 +349,55 @@ export default function AddReportPage() {
     const userId = localStorage.getItem("user_id")
     if (!userId) return
 
-    try {
-      await downloadPptxViaApi({
-        SERVICE_CODE: formData.service_code,
-        ID_NUMBER: formData.id_number,
-        NAME_AR: formData.name_ar,
-        NAME_EN: formData.name_en,
-        DAYS_COUNT: parseInt(formData.days_count) || 0,
-        ENTRY_DATE_GREGORIAN: formData.entry_date_gregorian,
-        EXIT_DATE_GREGORIAN: formData.exit_date_gregorian,
-        ENTRY_DATE_HIJRI: formData.entry_date_hijri,
-        EXIT_DATE_HIJRI: formData.exit_date_hijri,
-        REPORT_ISSUE_DATE: formData.report_issue_date,
-        NATIONALITY_AR: formData.nationality_ar,
-        NATIONALITY_EN: formData.nationality_en,
-        DOCTOR_NAME_AR: formData.doctor_name_ar,
-        DOCTOR_NAME_EN: formData.doctor_name_en,
-        JOB_TITLE_AR: formData.job_title_ar,
-        JOB_TITLE_EN: formData.job_title_en,
-        HOSPITAL_NAME_AR: formData.hospital_name_ar,
-        HOSPITAL_NAME_EN: formData.hospital_name_en,
-        PRINT_DATE: formData.print_date,
-        PRINT_TIME: formData.print_time,
-      })
-    } catch (e) {
-      setError("حدث خطأ أثناء تنزيل ملف PPTX")
-    }
+    await downloadPptx({
+      SERVICE_CODE: formData.service_code,
+      ID_NUMBER: formData.id_number,
+      NAME_AR: formData.name_ar,
+      NAME_EN: formData.name_en,
+      DAYS_COUNT: parseInt(formData.days_count) || 0,
+      ENTRY_DATE_GREGORIAN: formData.entry_date_gregorian,
+      EXIT_DATE_GREGORIAN: formData.exit_date_gregorian,
+      ENTRY_DATE_HIJRI: formData.entry_date_hijri,
+      EXIT_DATE_HIJRI: formData.exit_date_hijri,
+      REPORT_ISSUE_DATE: formData.report_issue_date,
+      NATIONALITY_AR: formData.nationality_ar,
+      NATIONALITY_EN: formData.nationality_en,
+      DOCTOR_NAME_AR: formData.doctor_name_ar,
+      DOCTOR_NAME_EN: formData.doctor_name_en,
+      JOB_TITLE_AR: formData.job_title_ar,
+      JOB_TITLE_EN: formData.job_title_en,
+      HOSPITAL_NAME_AR: formData.hospital_name_ar,
+      HOSPITAL_NAME_EN: formData.hospital_name_en,
+      PRINT_DATE: formData.print_date,
+      PRINT_TIME: formData.print_time,
+    })
   }
 
   const handleDownloadPDF = async () => {
     const userId = localStorage.getItem("user_id")
     if (!userId) return
-    try {
-      await downloadPdfViaApi({
-        SERVICE_CODE: formData.service_code,
-        ID_NUMBER: formData.id_number,
-        NAME_AR: formData.name_ar,
-        NAME_EN: formData.name_en,
-        DAYS_COUNT: parseInt(formData.days_count) || 0,
-        ENTRY_DATE_GREGORIAN: formData.entry_date_gregorian,
-        EXIT_DATE_GREGORIAN: formData.exit_date_gregorian,
-        ENTRY_DATE_HIJRI: formData.entry_date_hijri,
-        EXIT_DATE_HIJRI: formData.exit_date_hijri,
-        REPORT_ISSUE_DATE: formData.report_issue_date,
-        NATIONALITY_AR: formData.nationality_ar,
-        NATIONALITY_EN: formData.nationality_en,
-        DOCTOR_NAME_AR: formData.doctor_name_ar,
-        DOCTOR_NAME_EN: formData.doctor_name_en,
-        JOB_TITLE_AR: formData.job_title_ar,
-        JOB_TITLE_EN: formData.job_title_en,
-        HOSPITAL_NAME_AR: formData.hospital_name_ar,
-        HOSPITAL_NAME_EN: formData.hospital_name_en,
-        PRINT_DATE: formData.print_date,
-        PRINT_TIME: formData.print_time,
-      })
-    } catch (e) {
-      setError("حدث خطأ أثناء تنزيل ملف PDF")
-    }
+    await downloadPdf({
+      SERVICE_CODE: formData.service_code,
+      ID_NUMBER: formData.id_number,
+      NAME_AR: formData.name_ar,
+      NAME_EN: formData.name_en,
+      DAYS_COUNT: parseInt(formData.days_count) || 0,
+      ENTRY_DATE_GREGORIAN: formData.entry_date_gregorian,
+      EXIT_DATE_GREGORIAN: formData.exit_date_gregorian,
+      ENTRY_DATE_HIJRI: formData.entry_date_hijri,
+      EXIT_DATE_HIJRI: formData.exit_date_hijri,
+      REPORT_ISSUE_DATE: formData.report_issue_date,
+      NATIONALITY_AR: formData.nationality_ar,
+      NATIONALITY_EN: formData.nationality_en,
+      DOCTOR_NAME_AR: formData.doctor_name_ar,
+      DOCTOR_NAME_EN: formData.doctor_name_en,
+      JOB_TITLE_AR: formData.job_title_ar,
+      JOB_TITLE_EN: formData.job_title_en,
+      HOSPITAL_NAME_AR: formData.hospital_name_ar,
+      HOSPITAL_NAME_EN: formData.hospital_name_en,
+      PRINT_DATE: formData.print_date,
+      PRINT_TIME: formData.print_time,
+    })
   }
 
   // إضافة دالة للانتقال إلى التبويب التالي
@@ -440,6 +452,8 @@ export default function AddReportPage() {
 
   return (
     <div className="container max-w-md mx-auto p-4 pb-20 text-right" dir="rtl">
+      {pptxProgressDialog}
+      {pdfProgressDialog}
       <BackButton />
       <PageHeader
         title={<span className="gradient-heading text-2xl">إضافة تقرير جديد</span>}

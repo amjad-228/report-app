@@ -10,7 +10,7 @@ import { BackButton } from "@/components/ui-custom/back-button"
 import { SearchIcon, PlusCircle, Edit, Trash2, Download, Eye } from "lucide-react"
 import { type ReportData } from "@/lib/report-generator"
 import { createClientSupabaseClient } from "@/lib/supabase"
-import { downloadPptxViaApi, downloadPdfViaApi } from "@/lib/pptx-service"
+import { usePptxDownloadWithProgress, usePdfDownloadWithProgress } from "@/components/ui-custom/pptx-download-progress"
 
 interface Report extends ReportData {
   id: string
@@ -22,6 +22,8 @@ export default function SearchPage() {
   const [searchResults, setSearchResults] = useState<Report[]>([])
   const [error, setError] = useState<string | null>(null)
   const [isInitializing, setIsInitializing] = useState(true)
+  const { downloadPptx, pptxProgressDialog } = usePptxDownloadWithProgress()
+  const { downloadPdf, pdfProgressDialog } = usePdfDownloadWithProgress()
 
   useEffect(() => {
     // تهيئة عميل Supabase
@@ -75,75 +77,65 @@ export default function SearchPage() {
   }
 
   const handleDownloadPPTX = async (report: Report) => {
-    try {
-      const userId = localStorage.getItem("user_id")
-      if (!userId) {
-        setError("يجب تسجيل الدخول أولاً")
-        return
-      }
-
-      await downloadPptxViaApi({
-        SERVICE_CODE: (report as any).SERVICE_CODE ?? report.service_code,
-        ID_NUMBER: (report as any).ID_NUMBER ?? report.id_number,
-        NAME_AR: (report as any).NAME_AR ?? report.name_ar,
-        NAME_EN: (report as any).NAME_EN ?? report.name_en,
-        DAYS_COUNT: (report as any).DAYS_COUNT ?? report.days_count,
-        ENTRY_DATE_GREGORIAN: (report as any).ENTRY_DATE_GREGORIAN ?? report.entry_date_gregorian,
-        EXIT_DATE_GREGORIAN: (report as any).EXIT_DATE_GREGORIAN ?? report.exit_date_gregorian,
-        ENTRY_DATE_HIJRI: (report as any).ENTRY_DATE_HIJRI ?? (report as any).entry_date_hijri,
-        EXIT_DATE_HIJRI: (report as any).EXIT_DATE_HIJRI ?? (report as any).exit_date_hijri,
-        REPORT_ISSUE_DATE: (report as any).REPORT_ISSUE_DATE ?? (report as any).report_issue_date,
-        NATIONALITY_AR: (report as any).NATIONALITY_AR ?? (report as any).nationality_ar,
-        NATIONALITY_EN: (report as any).NATIONALITY_EN ?? (report as any).nationality_en,
-        DOCTOR_NAME_AR: (report as any).DOCTOR_NAME_AR ?? (report as any).doctor_name_ar,
-        DOCTOR_NAME_EN: (report as any).DOCTOR_NAME_EN ?? (report as any).doctor_name_en,
-        JOB_TITLE_AR: (report as any).JOB_TITLE_AR ?? (report as any).job_title_ar,
-        JOB_TITLE_EN: (report as any).JOB_TITLE_EN ?? (report as any).job_title_en,
-        HOSPITAL_NAME_AR: (report as any).HOSPITAL_NAME_AR ?? (report as any).hospital_name_ar,
-        HOSPITAL_NAME_EN: (report as any).HOSPITAL_NAME_EN ?? (report as any).hospital_name_en,
-        PRINT_DATE: (report as any).PRINT_DATE ?? (report as any).print_date,
-        PRINT_TIME: (report as any).PRINT_TIME ?? (report as any).print_time,
-      })
-    } catch (err) {
-      console.error("Error downloading PPTX:", err)
-      setError("حدث خطأ أثناء تنزيل ملف PPTX")
+    const userId = localStorage.getItem("user_id")
+    if (!userId) {
+      setError("يجب تسجيل الدخول أولاً")
+      return
     }
+
+    await downloadPptx({
+      SERVICE_CODE: (report as any).SERVICE_CODE ?? report.service_code,
+      ID_NUMBER: (report as any).ID_NUMBER ?? report.id_number,
+      NAME_AR: (report as any).NAME_AR ?? report.name_ar,
+      NAME_EN: (report as any).NAME_EN ?? report.name_en,
+      DAYS_COUNT: (report as any).DAYS_COUNT ?? report.days_count,
+      ENTRY_DATE_GREGORIAN: (report as any).ENTRY_DATE_GREGORIAN ?? report.entry_date_gregorian,
+      EXIT_DATE_GREGORIAN: (report as any).EXIT_DATE_GREGORIAN ?? report.exit_date_gregorian,
+      ENTRY_DATE_HIJRI: (report as any).ENTRY_DATE_HIJRI ?? (report as any).entry_date_hijri,
+      EXIT_DATE_HIJRI: (report as any).EXIT_DATE_HIJRI ?? (report as any).exit_date_hijri,
+      REPORT_ISSUE_DATE: (report as any).REPORT_ISSUE_DATE ?? (report as any).report_issue_date,
+      NATIONALITY_AR: (report as any).NATIONALITY_AR ?? (report as any).nationality_ar,
+      NATIONALITY_EN: (report as any).NATIONALITY_EN ?? (report as any).nationality_en,
+      DOCTOR_NAME_AR: (report as any).DOCTOR_NAME_AR ?? (report as any).doctor_name_ar,
+      DOCTOR_NAME_EN: (report as any).DOCTOR_NAME_EN ?? (report as any).doctor_name_en,
+      JOB_TITLE_AR: (report as any).JOB_TITLE_AR ?? (report as any).job_title_ar,
+      JOB_TITLE_EN: (report as any).JOB_TITLE_EN ?? (report as any).job_title_en,
+      HOSPITAL_NAME_AR: (report as any).HOSPITAL_NAME_AR ?? (report as any).hospital_name_ar,
+      HOSPITAL_NAME_EN: (report as any).HOSPITAL_NAME_EN ?? (report as any).hospital_name_en,
+      PRINT_DATE: (report as any).PRINT_DATE ?? (report as any).print_date,
+      PRINT_TIME: (report as any).PRINT_TIME ?? (report as any).print_time,
+    })
   }
 
   const handleDownloadPDF = async (report: Report) => {
-    try {
-      const userId = localStorage.getItem("user_id")
-      if (!userId) {
-        setError("يجب تسجيل الدخول أولاً")
-        return
-      }
-
-      await downloadPdfViaApi({
-        SERVICE_CODE: (report as any).SERVICE_CODE ?? report.service_code,
-        ID_NUMBER: (report as any).ID_NUMBER ?? report.id_number,
-        NAME_AR: (report as any).NAME_AR ?? report.name_ar,
-        NAME_EN: (report as any).NAME_EN ?? report.name_en,
-        DAYS_COUNT: (report as any).DAYS_COUNT ?? report.days_count,
-        ENTRY_DATE_GREGORIAN: (report as any).ENTRY_DATE_GREGORIAN ?? report.entry_date_gregorian,
-        EXIT_DATE_GREGORIAN: (report as any).EXIT_DATE_GREGORIAN ?? report.exit_date_gregorian,
-        ENTRY_DATE_HIJRI: (report as any).ENTRY_DATE_HIJRI ?? (report as any).entry_date_hijri,
-        EXIT_DATE_HIJRI: (report as any).EXIT_DATE_HIJRI ?? (report as any).exit_date_hijri,
-        REPORT_ISSUE_DATE: (report as any).REPORT_ISSUE_DATE ?? (report as any).report_issue_date,
-        NATIONALITY_AR: (report as any).NATIONALITY_AR ?? (report as any).nationality_ar,
-        NATIONALITY_EN: (report as any).NATIONALITY_EN ?? (report as any).nationality_en,
-        DOCTOR_NAME_AR: (report as any).DOCTOR_NAME_AR ?? (report as any).doctor_name_ar,
-        DOCTOR_NAME_EN: (report as any).DOCTOR_NAME_EN ?? (report as any).doctor_name_en,
-        JOB_TITLE_AR: (report as any).JOB_TITLE_AR ?? (report as any).job_title_ar,
-        JOB_TITLE_EN: (report as any).JOB_TITLE_EN ?? (report as any).job_title_en,
-        HOSPITAL_NAME_AR: (report as any).HOSPITAL_NAME_AR ?? (report as any).hospital_name_ar,
-        HOSPITAL_NAME_EN: (report as any).HOSPITAL_NAME_EN ?? (report as any).hospital_name_en,
-        PRINT_DATE: (report as any).PRINT_DATE ?? (report as any).print_date,
-        PRINT_TIME: (report as any).PRINT_TIME ?? (report as any).print_time,
-      })
-    } catch (err) {
-      console.error("Error downloading PDF:", err)
-      setError("حدث خطأ أثناء تنزيل ملف PDF")
+    const userId = localStorage.getItem("user_id")
+    if (!userId) {
+      setError("يجب تسجيل الدخول أولاً")
+      return
     }
+
+    await downloadPdf({
+      SERVICE_CODE: (report as any).SERVICE_CODE ?? report.service_code,
+      ID_NUMBER: (report as any).ID_NUMBER ?? report.id_number,
+      NAME_AR: (report as any).NAME_AR ?? report.name_ar,
+      NAME_EN: (report as any).NAME_EN ?? report.name_en,
+      DAYS_COUNT: (report as any).DAYS_COUNT ?? report.days_count,
+      ENTRY_DATE_GREGORIAN: (report as any).ENTRY_DATE_GREGORIAN ?? report.entry_date_gregorian,
+      EXIT_DATE_GREGORIAN: (report as any).EXIT_DATE_GREGORIAN ?? report.exit_date_gregorian,
+      ENTRY_DATE_HIJRI: (report as any).ENTRY_DATE_HIJRI ?? (report as any).entry_date_hijri,
+      EXIT_DATE_HIJRI: (report as any).EXIT_DATE_HIJRI ?? (report as any).exit_date_hijri,
+      REPORT_ISSUE_DATE: (report as any).REPORT_ISSUE_DATE ?? (report as any).report_issue_date,
+      NATIONALITY_AR: (report as any).NATIONALITY_AR ?? (report as any).nationality_ar,
+      NATIONALITY_EN: (report as any).NATIONALITY_EN ?? (report as any).nationality_en,
+      DOCTOR_NAME_AR: (report as any).DOCTOR_NAME_AR ?? (report as any).doctor_name_ar,
+      DOCTOR_NAME_EN: (report as any).DOCTOR_NAME_EN ?? (report as any).doctor_name_en,
+      JOB_TITLE_AR: (report as any).JOB_TITLE_AR ?? (report as any).job_title_ar,
+      JOB_TITLE_EN: (report as any).JOB_TITLE_EN ?? (report as any).job_title_en,
+      HOSPITAL_NAME_AR: (report as any).HOSPITAL_NAME_AR ?? (report as any).hospital_name_ar,
+      HOSPITAL_NAME_EN: (report as any).HOSPITAL_NAME_EN ?? (report as any).hospital_name_en,
+      PRINT_DATE: (report as any).PRINT_DATE ?? (report as any).print_date,
+      PRINT_TIME: (report as any).PRINT_TIME ?? (report as any).print_time,
+    })
   }
 
   const formatDate = (dateString: string) => {
@@ -161,6 +153,8 @@ export default function SearchPage() {
 
   return (
     <div className="container max-w-md mx-auto p-4 pb-20">
+      {pptxProgressDialog}
+      {pdfProgressDialog}
       <BackButton />
       <PageHeader
         title="نتائج البحث"
