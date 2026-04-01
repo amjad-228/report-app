@@ -84,7 +84,7 @@ async function downloadGenerateEndpointWithProgress(
   const path = kind === "pptx" ? "/generate-pptx" : "/generate-pdf"
   const endpoint = `${baseUrl.replace(/\/$/, "")}${path}`
   const ext = kind === "pptx" ? ".pptx" : ".pdf"
-  const filename = `sickLeaves_${data.NAME_AR}_${data.ID_NUMBER}${ext}`
+  const filename = `sickLeaves${ext}`
   const t0 = Date.now()
   const copy = copyForKind(kind)
 
