@@ -10,7 +10,8 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { AlertMessage } from "@/components/ui-custom/alert-message"
 import { PageHeader } from "@/components/ui-custom/page-header"
-import { Shield, UserPlus, Users, Check, X, Smartphone } from "lucide-react"
+import { Shield, UserPlus, Users, Check, X, Smartphone, Edit3, LogOut, Loader2 } from "lucide-react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 interface UserCountSummary {
@@ -25,6 +26,7 @@ interface UserCountSummary {
 interface User {
   id: string
   username: string
+  password?: string
   created_at: string
 }
 
@@ -52,6 +54,13 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [editingUser, setEditingUser] = useState<User | null>(null)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [editForm, setEditForm] = useState({
+    username: "",
+    password: "",
+  })
+  const [actionLoading, setActionLoading] = useState<string | null>(null)
   const supabase = createClientSupabaseClient()
 
   useEffect(() => {
@@ -64,7 +73,7 @@ export default function AdminPage() {
     try {
       const { data, error } = await supabase
         .from("users")
-        .select("id, username, created_at")
+        .select("id, username, password, created_at")
         .order("created_at", { ascending: false })
 
       if (error) {
@@ -201,6 +210,66 @@ export default function AdminPage() {
     }
   }
 
+  const handleUpdateUser = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingUser) return
+
+    setLoading(true)
+    setError(null)
+    setSuccess(null)
+
+    try {
+      const { error } = await supabase
+        .from("users")
+        .update({
+          username: editForm.username,
+          password: editForm.password,
+        })
+        .eq("id", editingUser.id)
+
+      if (error) throw error
+
+      setSuccess("تم تحديث بيانات المستخدم بنجاح")
+      setIsEditDialogOpen(false)
+      fetchUsers()
+      fetchUserCounts()
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleLogoutAllDevices = async (userId: string) => {
+    if (!confirm("هل أنت متأكد من تسجيل خروج هذا المستخدم من جميع أجهزته؟")) return
+
+    setActionLoading(userId)
+    setSuccess(null)
+    setError(null)
+
+    try {
+      const { error } = await supabase.from("authorized_devices").delete().eq("user_id", userId)
+
+      if (error) throw error
+
+      setSuccess("تم تسجيل خروج المستخدم من جميع الأجهزة بنجاح")
+      fetchDevices()
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const openEditDialog = (user: User) => {
+    setEditingUser(user)
+    setEditForm({
+      username: user.username,
+      password: user.password || "",
+    })
+    setIsEditDialogOpen(true)
+  }
+
   const handleRejectDevice = async (deviceId: string) => {
     try {
       const { error } = await supabase.from("authorized_devices").delete().eq("id", deviceId)
@@ -335,7 +404,7 @@ export default function AdminPage() {
             <CardHeader>
               <CardTitle className="text-lg flex items-center">
                 <Users className="mr-2 h-5 w-5" />
-                قائمة المستخدمين
+                قائمة المستخدمين والإدارة
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -343,46 +412,153 @@ export default function AdminPage() {
                 <p className="text-center text-muted-foreground py-4">لا يوجد مستخدمين</p>
               ) : (
                 <div className="space-y-4">
-                  {users.map((user) => (
-                    <div key={user.id} className="p-4 border rounded-md">
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <p className="font-medium">{user.username}</p>
-                          <p className="text-xs text-muted-foreground">تاريخ الإنشاء: {formatDate(user.created_at)}</p>
-                        </div>
-                        <Button size="sm" variant="outline" onClick={() => { setSelectedUserId(user.id); fetchReportsForUser(user.id) }}>
-                          عرض تقارير المستخدم
-                        </Button>
-                      </div>
-                      {selectedUserId === user.id && (
-                        <div className="mt-3 border-t pt-3">
-                          {loadingUserReports ? (
-                            <p className="text-sm text-muted-foreground">جاري التحميل...</p>
-                          ) : selectedUserReports.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">لا توجد تقارير لهذا المستخدم</p>
-                          ) : (
-                            <div className="space-y-2">
-                              {selectedUserReports.map((r) => (
-                                <div key={r.id} className="p-3 rounded-md bg-gray-50 border">
-                                  <div className="flex justify-between text-sm">
-                                    <span>رمز الخدمة: {r.service_code}</span>
-                                    <span>رقم الهوية: {r.id_number}</span>
-                                  </div>
-                                  <div className="text-xs text-muted-foreground mt-1">
-                                    تمت الإضافة: {new Date(r.created_at).toLocaleString("ar-SA")}
-                                  </div>
-                                </div>
-                              ))}
+                  {users.map((user) => {
+                    const stats = userCounts.find((uc) => uc.user_id === user.id)
+                    return (
+                      <div key={user.id} className="p-4 border rounded-md bg-white shadow-sm hover:shadow-md transition-shadow">
+                        <div className="flex flex-col space-y-3">
+                          <div className="flex justify-between items-start">
+                            <div className="space-y-1">
+                              <p className="font-bold text-lg text-blue-900">{user.username}</p>
+                              <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                                <span>📅 {formatDate(user.created_at)}</span>
+                                <span className="text-blue-600 font-mono">🔑 {user.password}</span>
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 w-8 p-0 border-blue-200 text-blue-600 hover:bg-blue-50"
+                                onClick={() => openEditDialog(user)}
+                              >
+                                <Edit3 className="h-4 w-4" />
+                                <span className="sr-only">تعديل</span>
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 w-8 p-0 border-red-200 text-red-600 hover:bg-red-50"
+                                onClick={() => handleLogoutAllDevices(user.id)}
+                                disabled={actionLoading === user.id}
+                              >
+                                {actionLoading === user.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <LogOut className="h-4 w-4" />
+                                )}
+                                <span className="sr-only">تسجيل خروج من جميع الأجهزة</span>
+                              </Button>
+                            </div>
+                          </div>
+
+                          {stats && (
+                            <div className="grid grid-cols-3 gap-2 py-2 border-y border-gray-50 bg-gray-50/50 rounded px-2">
+                              <div className="text-center">
+                                <p className="text-[10px] text-muted-foreground uppercase">الإجمالي</p>
+                                <p className="font-bold text-gray-700">{stats.total_reports}</p>
+                              </div>
+                              <div className="text-center">
+                                <p className="text-[10px] text-green-600 uppercase">النشطة</p>
+                                <p className="font-bold text-green-700">{stats.active_reports}</p>
+                              </div>
+                              <div className="text-center">
+                                <p className="text-[10px] text-red-400 uppercase">المحذوفة</p>
+                                <p className="font-bold text-red-500">{stats.deleted_reports}</p>
+                              </div>
                             </div>
                           )}
+
+                          <div className="flex justify-between items-center pt-1">
+                            <p className="text-[10px] text-muted-foreground italic">
+                              آخر نشاط: {stats?.last_report_created_at ? new Date(stats.last_report_created_at).toLocaleDateString("ar-SA") : "لا يوجد"}
+                            </p>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 text-[11px] text-blue-600 hover:text-blue-800"
+                              onClick={() => {
+                                setSelectedUserId(user.id)
+                                fetchReportsForUser(user.id)
+                              }}
+                            >
+                              {selectedUserId === user.id ? "إخفاء التقارير" : "عرض التقارير"}
+                            </Button>
+                          </div>
                         </div>
-                      )}
-                    </div>
-                  ))}
+
+                        {selectedUserId === user.id && (
+                          <div className="mt-3 border-t pt-3 animate-in slide-in-from-top-2 duration-300">
+                            {loadingUserReports ? (
+                              <div className="flex items-center justify-center py-4">
+                                <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
+                              </div>
+                            ) : selectedUserReports.length === 0 ? (
+                              <p className="text-sm text-center text-muted-foreground py-2 italic">لا يوجد تقارير مسجلة</p>
+                            ) : (
+                              <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                                {selectedUserReports.map((r) => (
+                                  <div key={r.id} className="p-2.5 rounded-md bg-blue-50/30 border border-blue-100">
+                                    <div className="flex justify-between text-[11px] font-medium text-blue-900">
+                                      <span>رمز: {r.service_code}</span>
+                                      <span>هوية: {r.id_number}</span>
+                                    </div>
+                                    <div className="text-[10px] text-muted-foreground mt-1 text-left">
+                                      {new Date(r.created_at).toLocaleString("ar-SA")}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
                 </div>
               )}
             </CardContent>
           </Card>
+
+          {/* Edit User Dialog */}
+          <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+            <DialogContent className="sm:max-w-md bg-white">
+              <DialogHeader>
+                <DialogTitle className="text-right">تعديل بيانات المستخدم</DialogTitle>
+                <DialogDescription className="text-right">قم بتعديل اسم المستخدم أو كلمة المرور الخاصة به.</DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleUpdateUser} className="space-y-4 py-4 pr-1">
+                <div className="space-y-2 text-right">
+                  <Label htmlFor="edit-username">اسم المستخدم</Label>
+                  <Input
+                    id="edit-username"
+                    value={editForm.username}
+                    onChange={(e) => setEditForm((prev) => ({ ...prev, username: e.target.value }))}
+                    className="text-right"
+                    required
+                  />
+                </div>
+                <div className="space-y-2 text-right">
+                  <Label htmlFor="edit-password">كلمة المرور</Label>
+                  <Input
+                    id="edit-password"
+                    value={editForm.password}
+                    onChange={(e) => setEditForm((prev) => ({ ...prev, password: e.target.value }))}
+                    className="text-right font-mono"
+                    required
+                  />
+                </div>
+                <DialogFooter className="flex gap-2">
+                  <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)} className="flex-1">
+                    إلغاء
+                  </Button>
+                  <Button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-700" disabled={loading}>
+                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "حفظ التغييرات"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
         </TabsContent>
         <TabsContent value="devices" className="space-y-4">
           <Card>
