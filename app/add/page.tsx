@@ -38,7 +38,7 @@ import { Separator } from "@/components/ui/separator"
 import { Progress } from "@/components/ui/progress"
 import { usePptxDownloadWithProgress, usePdfDownloadWithProgress } from "@/components/ui-custom/pptx-download-progress"
 import { toHijri } from "hijri-date-converter"
-import { clearArToEnTimers, scheduleArToEnSync } from "@/lib/auto-translate-ar-en"
+import { invalidateArToEnSeq, scheduleArToEnSync } from "@/lib/auto-translate-ar-en"
 
 interface ReportFormFields {
   service_code: string
@@ -166,7 +166,7 @@ export default function AddReportPage() {
   const [error, setError] = useState<string | null>(null)
   // إضافة متغير حالة للتبويب النشط
   const [activeTab, setActiveTab] = useState("basic")
-  const translateTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
+  const translateSeqRef = useRef<Record<string, number>>({})
   const { downloadPptx, pptxProgressDialog } = usePptxDownloadWithProgress()
   const { downloadPdf, pdfProgressDialog } = usePdfDownloadWithProgress()
   const supabase = createClientSupabaseClient()
@@ -258,7 +258,7 @@ export default function AddReportPage() {
   }, [formData.exit_date_gregorian])
 
   useEffect(() => {
-    return () => clearArToEnTimers(translateTimersRef)
+    return () => invalidateArToEnSeq(translateSeqRef)
   }, [])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -266,7 +266,7 @@ export default function AddReportPage() {
     setFormData((prev) => ({ ...prev, [name]: value }))
     const pair = AR_EN_FIELD_PAIRS.find((p) => p.ar === name)
     if (pair) {
-      scheduleArToEnSync<ReportFormFields>(setFormData, translateTimersRef, pair.ar, pair.en, value)
+      scheduleArToEnSync<ReportFormFields>(setFormData, translateSeqRef, pair.ar, pair.en, value)
     }
   }
 

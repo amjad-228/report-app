@@ -51,11 +51,13 @@ type GenerateKind = "pptx" | "pdf"
 function copyForKind(kind: GenerateKind) {
   if (kind === "pdf") {
     return {
-      prepDetail: "تجهيز بيانات التقرير للإرسال إلى خادم إنشاء ملف PDF...",
-      connectDetail: "إرسال الطلب — جاري انتظار استجابة الخادم (تحويل إلى PDF)...",
-      serverDetail: "الخادم يُنشئ ملف PDF — قد يستغرق ذلك بضع ثوانٍ حسب الاتصال.",
-      downloadUnknown: "جاري استلام ملف PDF من الخادم...",
-      doneDetail: "اكتمل تنزيل ملف PDF بنجاح.",
+      prepDetail:
+        "تجهيز بيانات التقرير — سيتم إنشاء نفس ملف العرض (PPTX) ثم تحويله إلى PDF على الخادم...",
+      connectDetail: "إرسال الطلب — جاري انتظار استجابة الخادم (إنشاء العرض ثم التحويل إلى PDF)...",
+      serverDetail:
+        "الخادم يملأ القالب كما في PPTX ثم يحوّله بـ LibreOffice إلى PDF — قد يستغرق ذلك بضع ثوانٍ.",
+      downloadUnknown: "جاري استلام ملف PDF المحوَّل من الخادم...",
+      doneDetail: "اكتمل تنزيل ملف PDF (نفس محتوى العرض بعد التحويل).",
       doneShort: "اكتمل تنزيل ملف PDF.",
       blobMime: "application/pdf",
     }
@@ -244,39 +246,15 @@ export async function downloadPptxViaApi(data: ReportDataForPptx) {
   await downloadPptxViaApiWithProgress(data)
 }
 
-/** تنزيل PDF من الخادم مع التقدّم؛ عند فشل التحويل على الخادم يُنشأ PDF محلياً من المتصفح. */
+/**
+ * تنزيل PDF من الخادم مع التقدّم.
+ * ملف PDF هو نفسه ملف العرض PPTX بعد تعبئته بالبيانات ثم تحويله إلى PDF (LibreOffice على الخادم).
+ */
 export async function downloadPdfViaApiWithProgress(
   data: ReportDataForPptx,
   onProgress?: PptxProgressCallback,
 ): Promise<void> {
-  const push = (partial: PptxProgressUpdate) => {
-    onProgress?.({
-      percent: Math.min(100, Math.max(0, partial.percent)),
-      stageLabel: partial.stageLabel,
-      detail: partial.detail,
-      etaSeconds: partial.etaSeconds,
-    })
-  }
-
-  try {
-    await downloadGenerateEndpointWithProgress(data, "pdf", onProgress)
-  } catch {
-    push({
-      percent: 38,
-      stageLabel: "نسخة بديلة",
-      detail:
-        "تعذّر إنشاء PDF من الخادم (غالباً لعدم توفر LibreOffice). جاري إنشاء ملف PDF من المتصفح بنفس البيانات...",
-      etaSeconds: null,
-    })
-    const { downloadReportPdfFromBrowser } = await import("./report-pdf-client")
-    await downloadReportPdfFromBrowser(data)
-    push({
-      percent: 100,
-      stageLabel: "تم بنجاح",
-      detail: "اكتمل تنزيل ملف PDF (تم إنشاؤه محلياً).",
-      etaSeconds: 0,
-    })
-  }
+  await downloadGenerateEndpointWithProgress(data, "pdf", onProgress)
 }
 
 export async function downloadPdfViaApi(data: ReportDataForPptx) {

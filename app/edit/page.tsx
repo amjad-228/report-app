@@ -33,7 +33,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
 import { addActivity } from "@/lib/activities-service"
 import { toHijri } from "hijri-date-converter"
-import { clearArToEnTimers, scheduleArToEnSync } from "@/lib/auto-translate-ar-en"
+import { invalidateArToEnSeq, scheduleArToEnSync } from "@/lib/auto-translate-ar-en"
 
 interface Report {
   id: string
@@ -139,7 +139,7 @@ export default function EditReportPage() {
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const translateTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
+  const translateSeqRef = useRef<Record<string, number>>({})
   const supabase = createClientSupabaseClient()
 
   useEffect(() => {
@@ -206,7 +206,7 @@ export default function EditReportPage() {
   }, [formData.exitDateGregorian])
 
   useEffect(() => {
-    return () => clearArToEnTimers(translateTimersRef)
+    return () => invalidateArToEnSeq(translateSeqRef)
   }, [])
 
   const populateFormData = (report: Report) => {
@@ -239,7 +239,7 @@ export default function EditReportPage() {
     setFormData((prev) => ({ ...prev, [name]: value }))
     const pair = EDIT_AR_EN_PAIRS.find((p) => p.ar === name)
     if (pair) {
-      scheduleArToEnSync<EditFormState>(setFormData, translateTimersRef, pair.ar, pair.en, value)
+      scheduleArToEnSync<EditFormState>(setFormData, translateSeqRef, pair.ar, pair.en, value)
     }
   }
 

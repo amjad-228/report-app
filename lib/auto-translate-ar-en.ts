@@ -18,40 +18,40 @@ export async function fetchTranslateArToEn(text: string): Promise<string> {
 }
 
 /**
- * عند تغيير حقل عربي: بعد التأخير يُترجم النص ويُحدَّث الحقل الإنجليزي المقابل.
- * إذا أُفرغ الحقل العربي يُفرغ الإنجليزي. إذا لم يُدخل أي حرف عربي لا تُستدعى الترجمة.
+ * عند تغيير حقل عربي: تُستدعى الترجمة مباشرة (بدون انتظار الكتابة).
+ * يُستخدم seqRef لكل حقل كي يُطبَّق فقط آخر رد يطابق آخر إدخال (تجنّب خلط النتائج عند الكتابة السريعة).
  */
 export function scheduleArToEnSync<T extends object>(
   setFormData: Dispatch<SetStateAction<T>>,
-  timersRef: MutableRefObject<Record<string, ReturnType<typeof setTimeout>>>,
+  seqRef: MutableRefObject<Record<string, number>>,
   arKey: keyof T & string,
   enKey: keyof T & string,
   arValue: string,
-  debounceMs = 550,
 ): void {
-  const id = arKey
-  const prev = timersRef.current[id]
-  if (prev) clearTimeout(prev)
+  const trimmed = arValue.trim()
+  if (!trimmed) {
+    seqRef.current[arKey] = (seqRef.current[arKey] ?? 0) + 1
+    setFormData((p) => ({ ...p, [enKey]: "" } as T))
+    return
+  }
+  if (!ARABIC_SCRIPT_RE.test(arValue)) {
+    return
+  }
 
-  timersRef.current[id] = setTimeout(async () => {
-    const trimmed = arValue.trim()
-    if (!trimmed) {
-      setFormData((p) => ({ ...p, [enKey]: "" } as T))
-      return
-    }
-    if (!ARABIC_SCRIPT_RE.test(arValue)) {
-      return
-    }
-    try {
-      const en = await fetchTranslateArToEn(arValue)
-      setFormData((p) => ({ ...p, [enKey]: en } as T))
-    } catch (e) {
-      console.error("Auto-translate failed:", e)
-    }
-  }, debounceMs)
+  seqRef.current[arKey] = (seqRef.current[arKey] ?? 0) + 1
+  const mySeq = seqRef.current[arKey]
+
+  void fetchTranslateArToEn(arValue).then((en) => {
+    if (seqRef.current[arKey] !== mySeq) return
+    setFormData((p) => ({ ...p, [enKey]: en } as T))
+  }).catch((e) => {
+    console.error("Auto-translate failed:", e)
+  })
 }
 
-export function clearArToEnTimers(timersRef: MutableRefObject<Record<string, ReturnType<typeof setTimeout>>>): void {
-  Object.values(timersRef.current).forEach(clearTimeout)
-  timersRef.current = {}
+/** عند إلغاء تركيب المكوّن: إبطال الطلبات الجارية حتى لا تُحدَّث الحالة بعد الخروج. */
+export function invalidateArToEnSeq(seqRef: MutableRefObject<Record<string, number>>): void {
+  for (const k of Object.keys(seqRef.current)) {
+    seqRef.current[k] = (seqRef.current[k] ?? 0) + 1
+  }
 }
